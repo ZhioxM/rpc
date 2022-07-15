@@ -1,10 +1,10 @@
 package com.moon.rpc.transport.registry.impl;
 
 import com.alibaba.nacos.api.exception.NacosException;
+import com.alibaba.nacos.api.naming.NamingFactory;
+import com.alibaba.nacos.api.naming.NamingService;
 import com.alibaba.nacos.api.naming.pojo.Instance;
-import com.moon.rpc.transport.loadbalance.LoadBalancer;
-import com.moon.rpc.transport.loadbalance.impl.RoundRobinRule;
-import com.moon.rpc.transport.registry.NacosUtils;
+import com.moon.rpc.transport.loadbalance.LoadBalance;
 import com.moon.rpc.transport.registry.ServiceDiscovery;
 import lombok.extern.slf4j.Slf4j;
 
@@ -14,18 +14,25 @@ import java.util.List;
 /**
  * 服务发现
  * 供客户端使用
+ *
  * @author mzx
  */
 @Slf4j
 public class NacosServiceDiscovery implements ServiceDiscovery {
 
-    private final LoadBalancer loadBalancer;
+    private final LoadBalance loadBalance;
+    private final NamingService namingService;
 
     /**
-     * @param loadBalancer 负载均衡算法 默认使用轮循的方式
+     * @param loadBalance 负载均衡算法
      */
-    public NacosServiceDiscovery(LoadBalancer loadBalancer) {
-        this.loadBalancer = loadBalancer == null ? new RoundRobinRule() : loadBalancer;
+    public NacosServiceDiscovery(String registryAddr, LoadBalance loadBalance) {
+        this.loadBalance = loadBalance;
+        try {
+            namingService = NamingFactory.createNamingService(registryAddr);
+        } catch (NacosException e) {
+            throw new RuntimeException("连接到Nacos时发生错误");
+        }
     }
 
 
@@ -38,13 +45,13 @@ public class NacosServiceDiscovery implements ServiceDiscovery {
      */
     @Override
     public InetSocketAddress selectService(String serviceName) throws NacosException {
-        // 获取服务实例
-        List<Instance> instanceList = NacosUtils.getAllInstance(serviceName);
-        System.out.println(serviceName);
+        // 获取服务器列表
+        List<Instance> instanceList = namingService.getAllInstances(serviceName);
         if (instanceList.size() == 0) {
             throw new RuntimeException("找不到对应服务");
         }
-        Instance instance = loadBalancer.getInstance(instanceList); // 根据负载均衡策略选择服务器
+        // 根据负载均衡策略选择服务器
+        Instance instance = loadBalance.getInstance(instanceList);
         log.debug("客户端选择的服务提供者是{} : {}", instance.getIp(), instance.getPort());
         return new InetSocketAddress(instance.getIp(), instance.getPort());
     }

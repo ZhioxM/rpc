@@ -1,4 +1,4 @@
-package com.moon.rpc.client;
+package com.moon.rpc.client.factory;
 
 import com.moon.rpc.client.transport.ResponseFuture;
 import com.moon.rpc.transport.dto.RpcResponse;

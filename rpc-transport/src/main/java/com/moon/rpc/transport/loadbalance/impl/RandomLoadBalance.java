@@ -1,8 +1,7 @@
 package com.moon.rpc.transport.loadbalance.impl;
 
 import com.alibaba.nacos.api.naming.pojo.Instance;
-import com.moon.rpc.transport.loadbalance.LoadBalancer;
-
+import com.moon.rpc.transport.loadbalance.LoadBalance;
 
 import java.util.List;
 import java.util.Random;
@@ -12,7 +11,7 @@ import java.util.Random;
  *
  * @author chenlei
  */
-public class RandomRule implements LoadBalancer {
+public class RandomLoadBalance implements LoadBalance {
     private final Random random = new Random();
 
     /**

@@ -1,14 +1,14 @@
 package com.moon.rpc.transport.loadbalance.impl;
 
 import com.alibaba.nacos.api.naming.pojo.Instance;
-import com.moon.rpc.transport.loadbalance.LoadBalancer;
+import com.moon.rpc.transport.loadbalance.LoadBalance;
 
 import java.util.*;
 
 /**
  * @author mzx
  */
-public class IpHashLoadBalancer implements LoadBalancer {
+public class IpHashLoadBalance implements LoadBalance {
     @Override
     public Instance getInstance(List<Instance> list) {
         return null;

@@ -3,10 +3,7 @@ package com.moon.rpc.client.transport;
 import com.alibaba.nacos.api.exception.NacosException;
 import com.moon.rpc.client.factory.RemoteChannelFactory;
 import com.moon.rpc.transport.dto.RpcRequest;
-import com.moon.rpc.transport.loadbalance.LoadBalancer;
-import com.moon.rpc.transport.loadbalance.impl.RoundRobinRule;
 import com.moon.rpc.transport.registry.ServiceDiscovery;
-import com.moon.rpc.transport.registry.impl.NacosServiceDiscovery;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
 import lombok.extern.slf4j.Slf4j;
@@ -15,29 +12,18 @@ import java.net.InetSocketAddress;
 
 @Slf4j
 public class RpcClient {
+
     /**
      * 服务发现表
      */
-    private final ServiceDiscovery serviceDiscovery;
+    private ServiceDiscovery serviceDiscovery;
 
-    /**
-     * 使用无参构造，则默认使用轮询的方式进行服务发现
-     */
-    public RpcClient() {
-        this.serviceDiscovery = new NacosServiceDiscovery(new RoundRobinRule());
-    }
-
-    /**
-     * @param loadBalancer 负载均衡策略
-     */
-    public RpcClient(LoadBalancer loadBalancer) {
-        this.serviceDiscovery = new NacosServiceDiscovery(loadBalancer);
+    public RpcClient(ServiceDiscovery serviceDiscovery) {
+        this.serviceDiscovery = serviceDiscovery;
     }
 
     /**
      * 发送Rpc请求消息
-     *
-     * @param msg
      */
     public void sendRpcRequest(RpcRequest msg) throws NacosException {
         // 根据配置的负载均衡策略，获取服务器的地址

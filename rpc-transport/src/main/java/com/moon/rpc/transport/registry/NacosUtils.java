@@ -16,6 +16,7 @@ import java.util.Set;
  *
  * @author chenlei
  */
+@Deprecated
 public class NacosUtils {
 
 

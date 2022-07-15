@@ -1,7 +1,7 @@
 package com.moon.rpc.transport.loadbalance.impl;
 
 import com.alibaba.nacos.api.naming.pojo.Instance;
-import com.moon.rpc.transport.loadbalance.LoadBalancer;
+import com.moon.rpc.transport.loadbalance.LoadBalance;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -11,7 +11,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  *
  * @author chenlei
  */
-public class RoundRobinRule implements LoadBalancer {
+public class RoundRobinLoadBalance implements LoadBalance {
 
     /**
      * 使用院子计数器做轮循

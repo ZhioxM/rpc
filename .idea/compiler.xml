@@ -10,9 +10,9 @@
         <module name="rpc-server" />
         <module name="rpc-api" />
         <module name="example-provider" />
-        <module name="rpc-transport" />
-        <module name="rpc-client" />
         <module name="example-consumer" />
+        <module name="rpc-client" />
+        <module name="rpc-transport" />
       </profile>
     </annotationProcessing>
   </component>

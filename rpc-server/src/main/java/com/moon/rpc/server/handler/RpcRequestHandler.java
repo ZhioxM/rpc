@@ -1,7 +1,7 @@
 package com.moon.rpc.server.handler;
 
 
-import com.moon.rpc.server.service.ServiceProvider;
+import com.moon.rpc.server.factory.LocalServiceFactory;
 import com.moon.rpc.transport.dto.RpcRequest;
 import com.moon.rpc.transport.dto.RpcResponse;
 import io.netty.channel.ChannelHandler;
@@ -48,29 +48,10 @@ public class RpcRequestHandler extends SimpleChannelInboundHandler<RpcRequest> {
 
     private Object handle(RpcRequest rpcRequest) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
         // 通过服务名称从本地工厂获取本地注解了@RpcSerice的实例对象
-        Object service = ServiceProvider.getService(rpcRequest.getApiName());
+        Object service = LocalServiceFactory.getService(rpcRequest.getApiName(), rpcRequest.getVersion());
         // 获取调用的方法
         Method method = service.getClass().getMethod(rpcRequest.getMethodName(), rpcRequest.getParameterTypes());
         // 调用方法得到返回值
         return method.invoke(service, rpcRequest.getParameterValue());
     }
-
-    // 测试的代码
-    /*
-    public static void main(String[] args) throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
-        RpcRequestMessage message = new RpcRequestMessage(
-                1,
-                "com.moon.netty.rpc.server.service.HelloService",
-                "sayHello",
-                String.class,
-                new Class[]{String.class},
-                new Object[]{"张三"}
-        );
-        HelloService service = (HelloService)
-                ServicesFactory.selectService(Class.forName(message.getInterfaceName()));
-        Method method = service.getClass().getMethod(message.getMethodName(), message.getParameterTypes());
-        Object invoke = method.invoke(service, message.getParameterValue());
-        System.out.println(invoke);
-    }
-    */
 }

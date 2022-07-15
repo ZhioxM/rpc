@@ -1,5 +1,6 @@
 package com.moon.rpc.client.proxy;
 
+import com.moon.rpc.client.annotation.RpcReference;
 import com.moon.rpc.client.transport.RpcClient;
 import lombok.extern.slf4j.Slf4j;
 
@@ -22,7 +23,9 @@ public class RpcClientProxy {
     }
 
     /**
-     * 缓存客户端存根（即代理对象）。没有必要每次调用都重新生成一个新的代理对象
+     * 缓存接口类的代理对象。没有必要每次调用都重新生成一个新的代理对象
+     * Key : 服务接口的Class对象
+     * Value：服务接口的代理对象
      */
     private Map<Class<?>, Object> clientSubCache = new ConcurrentHashMap<>();
 
@@ -34,9 +37,9 @@ public class RpcClientProxy {
      * @return
      */
     @SuppressWarnings("unchecked") // 抑制unchecked警告
-    public <T> T getProxy(Class<T> clazz) {
+    public <T> T getProxy(Class<T> clazz, RpcReference rpcReference) {
         return (T) clientSubCache.computeIfAbsent(clazz, clz ->
-                Proxy.newProxyInstance(clz.getClassLoader(), new Class[]{clz}, new RpcClientProxyInvocation(clazz, rpcClient))
+                Proxy.newProxyInstance(clz.getClassLoader(), new Class[]{clz}, new RpcClientProxyInvocation(clazz, rpcClient, rpcReference))
         );
     }
 }
