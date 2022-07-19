@@ -1,7 +1,7 @@
 package com.moon.rpc.transport.loadbalance.impl;
 
-import com.alibaba.nacos.api.naming.pojo.Instance;
 import com.moon.rpc.transport.loadbalance.LoadBalance;
+import com.moon.rpc.transport.registry.Invoker;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -41,7 +41,7 @@ public class RoundRobinLoadBalance implements LoadBalance {
      * @return
      */
     @Override
-    public Instance getInstance(List<Instance> list) {
+    public Invoker select(List<Invoker> list) {
         int index = getAndIncrement() % list.size();
         return list.get(index);
     }

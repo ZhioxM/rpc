@@ -1,7 +1,7 @@
 package com.moon.rpc.client.proxy;
 
 import com.moon.rpc.client.annotation.RpcReference;
-import com.moon.rpc.client.transport.RpcClient;
+import com.moon.rpc.transport.registry.ServiceDiscovery;
 import lombok.extern.slf4j.Slf4j;
 
 import java.lang.reflect.Proxy;
@@ -16,10 +16,10 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Slf4j
 public class RpcClientProxy {
-    private RpcClient rpcClient;
+    private ServiceDiscovery serviceDiscovery;
 
-    public RpcClientProxy(RpcClient rpcClient) {
-        this.rpcClient = rpcClient;
+    public RpcClientProxy(ServiceDiscovery serviceDiscovery) {
+        this.serviceDiscovery = serviceDiscovery;
     }
 
     /**
@@ -39,7 +39,7 @@ public class RpcClientProxy {
     @SuppressWarnings("unchecked") // 抑制unchecked警告
     public <T> T getProxy(Class<T> clazz, RpcReference rpcReference) {
         return (T) clientSubCache.computeIfAbsent(clazz, clz ->
-                Proxy.newProxyInstance(clz.getClassLoader(), new Class[]{clz}, new RpcClientProxyInvocation(clazz, rpcClient, rpcReference))
+                Proxy.newProxyInstance(clz.getClassLoader(), new Class[]{clz}, new RpcClientProxyInvocation(clazz, rpcReference, serviceDiscovery))
         );
     }
 }

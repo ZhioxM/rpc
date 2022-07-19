@@ -2,14 +2,12 @@ package com.moon.rpc.client.autoconfig;
 
 
 import com.moon.rpc.client.proxy.RpcClientProxy;
-import com.moon.rpc.client.transport.RpcClient;
 import com.moon.rpc.transport.loadbalance.LoadBalance;
 import com.moon.rpc.transport.loadbalance.impl.RandomLoadBalance;
 import com.moon.rpc.transport.loadbalance.impl.RoundRobinLoadBalance;
 import com.moon.rpc.transport.registry.ServiceDiscovery;
 import com.moon.rpc.transport.registry.impl.NacosServiceDiscovery;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -72,17 +70,9 @@ public class RpcClientAutoConfiguration {
 
     @Bean
     @DependsOn("serviceDiscovery")
-    @Order(3)
-    public RpcClient rpcClient(@Autowired ServiceDiscovery serviceDiscovery) {
-        return new RpcClient(serviceDiscovery);
-    }
-
-    @Bean
-    @ConditionalOnBean(RpcClient.class)
-    @DependsOn("rpcClient")
-    public RpcClientProxy rpcClientProxy(@Autowired RpcClient rpcClient) {
+    public RpcClientProxy rpcClientProxy(@Autowired ServiceDiscovery serviceDiscovery) {
         System.out.println("初始化rpcClientProxy");
-        return new RpcClientProxy(rpcClient);
+        return new RpcClientProxy(serviceDiscovery);
     }
 
     @Bean

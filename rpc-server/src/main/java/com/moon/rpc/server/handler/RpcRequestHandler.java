@@ -48,7 +48,7 @@ public class RpcRequestHandler extends SimpleChannelInboundHandler<RpcRequest> {
 
     private Object handle(RpcRequest rpcRequest) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
         // 通过服务名称从本地工厂获取本地注解了@RpcSerice的实例对象
-        Object service = LocalServiceFactory.getService(rpcRequest.getApiName(), rpcRequest.getVersion());
+        Object service = LocalServiceFactory.getService(rpcRequest.getInterfaceName(), rpcRequest.getVersion());
         // 获取调用的方法
         Method method = service.getClass().getMethod(rpcRequest.getMethodName(), rpcRequest.getParameterTypes());
         // 调用方法得到返回值

@@ -11,8 +11,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.boot.CommandLineRunner;
 
-import java.net.InetSocketAddress;
-
 /**
  * @author mzx
  * @date 2022/7/15 13:29
@@ -53,7 +51,7 @@ public class RpcServerBeanPostProcessor implements BeanPostProcessor, CommandLin
                 // 保存服务接口
                 LocalServiceFactory.addService(serviceName, version, bean);
                 // 服务注册
-                serviceRegistry.register(serviceName, new InetSocketAddress(rpcServerProperties.getHost(), rpcServerProperties.getPort()));
+                serviceRegistry.register(serviceName, rpcServerProperties.getHost(), rpcServerProperties.getPort());
             } catch (Exception ex) {
                 log.error("服务注册出错:{}", ex);
             }

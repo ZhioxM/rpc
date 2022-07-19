@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 public class HelloController {
-    @RpcReference(version = "1.0")
+    @RpcReference(version = "1.1", timeout = 30, retries = 3)
     private HelloService helloService;
 
     @GetMapping("/hello")

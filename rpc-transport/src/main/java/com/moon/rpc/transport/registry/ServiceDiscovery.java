@@ -3,7 +3,7 @@ package com.moon.rpc.transport.registry;
 
 import com.alibaba.nacos.api.exception.NacosException;
 
-import java.net.InetSocketAddress;
+import java.util.Set;
 
 /**
  * 服务发现接口
@@ -14,8 +14,8 @@ import java.net.InetSocketAddress;
 public interface ServiceDiscovery {
 
     /**
-     * 根据服务名找到InetSocketAddress
+     * 根据服务名找到服务器节点
      */
-    InetSocketAddress selectService(String serviceName) throws NacosException;
+    Invoker select(String serviceName, Set<Invoker> invoked) throws NacosException;
 
 }

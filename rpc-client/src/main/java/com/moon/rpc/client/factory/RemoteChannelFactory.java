@@ -5,6 +5,7 @@ import com.moon.rpc.client.handler.HeartBeatClientHandler;
 import com.moon.rpc.client.handler.RpcResponseHandler;
 import com.moon.rpc.transport.codec.MessageCodecSharable;
 import com.moon.rpc.transport.codec.ProcotolFrameDecoder;
+import com.moon.rpc.transport.registry.Invoker;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -41,12 +42,12 @@ public class RemoteChannelFactory {
     /**
      * 根据地址获取Channel，如果这个channel不存在或者已经断开，则重新连接
      *
-     * @param inetSocketAddress
+     * @param invoker
      * @return
      * @throws InterruptedException
      */
-    public static Channel get(InetSocketAddress inetSocketAddress) {
-        String key = inetSocketAddress.toString();
+    public static Channel get(Invoker invoker) {
+        String key = invoker.getHost() + ":" + invoker.getPort();
         if (channels.containsKey(key)) {
             // 连接存在
             Channel channel = channels.get(key);
@@ -64,7 +65,7 @@ public class RemoteChannelFactory {
         Channel channel = null;
         try {
             log.debug("重新连接");
-            channel = connect(bootstrap, inetSocketAddress);
+            channel = connect(bootstrap, invoker);
         } catch (ExecutionException e) {
             log.error("连接客户端时有错误发生", e);
             return null;
@@ -79,14 +80,14 @@ public class RemoteChannelFactory {
      * 建立连接
      *
      * @param bootstrap
-     * @param inetSocketAddress
+     * @param invoker
      * @return
      * @throws ExecutionException
      * @throws InterruptedException
      */
-    private static Channel connect(Bootstrap bootstrap, InetSocketAddress inetSocketAddress) throws ExecutionException, InterruptedException {
+    private static Channel connect(Bootstrap bootstrap, Invoker invoker) throws ExecutionException, InterruptedException {
         CompletableFuture<Channel> completableFuture = new CompletableFuture<>();
-        bootstrap.connect(inetSocketAddress).addListener((ChannelFutureListener) future -> {
+        bootstrap.connect(new InetSocketAddress(invoker.getHost(), invoker.getPort())).addListener((ChannelFutureListener) future -> {
             if (future.isSuccess()) {
                 log.info("客户端连接成功!");
                 completableFuture.complete(future.channel());

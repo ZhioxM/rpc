@@ -4,10 +4,11 @@ import com.alibaba.nacos.api.exception.NacosException;
 import com.alibaba.nacos.api.naming.NamingFactory;
 import com.alibaba.nacos.api.naming.NamingService;
 import com.alibaba.nacos.api.naming.pojo.Instance;
+import com.moon.rpc.transport.registry.Invoker;
 import com.moon.rpc.transport.registry.ServiceRegistry;
 import lombok.extern.slf4j.Slf4j;
 
-import java.net.InetSocketAddress;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -31,14 +32,11 @@ public class NacosServiceRegistry implements ServiceRegistry {
 
     /**
      * 服务注册
-     *
-     * @param serviceName
-     * @param inetSocketAddress
      */
     @Override
-    public void register(String serviceName, InetSocketAddress inetSocketAddress) {
+    public void register(String serviceName, String host, int port) {
         try {
-            namingService.registerInstance(serviceName, inetSocketAddress.getHostName(), inetSocketAddress.getPort());
+            namingService.registerInstance(serviceName, host, port);
             log.debug(serviceName + " 服务成功注册到远程服务中心");
         } catch (NacosException e) {
             throw new RuntimeException("注册Nacos出现异常");
@@ -52,7 +50,13 @@ public class NacosServiceRegistry implements ServiceRegistry {
      * @return
      * @throws NacosException
      */
-    public List<Instance> getAllInstance(String serverName) throws NacosException {
-        return namingService.getAllInstances(serverName);
+    public List<Invoker> getAllInstance(String serverName) throws NacosException {
+        List<Instance> instances = namingService.getAllInstances(serverName);
+        List<Invoker> invokers = new ArrayList<>();
+        for (Instance instance : instances) {
+            Invoker invoker = new Invoker(serverName, instance.getIp(), instance.getPort());
+            invokers.add(invoker);
+        }
+        return invokers;
     }
 }

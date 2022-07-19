@@ -14,7 +14,7 @@ public class RpcRequest extends Message {
     /**
      * 接口的名字(全限定名)
      */
-    private String apiName;
+    private String interfaceName;
 
     /**
      * 接口的版本
@@ -43,9 +43,9 @@ public class RpcRequest extends Message {
     private long timeout;
 
 
-    public RpcRequest(int sequenceId, String apiName, String version, String methodName, Class<?>[] parameterTypes, Object[] parameterValue, long timeout) {
+    public RpcRequest(int sequenceId, String interfaceName, String version, String methodName, Class<?>[] parameterTypes, Object[] parameterValue, long timeout) {
         this.sequenceId = sequenceId;
-        this.apiName = apiName;
+        this.interfaceName = interfaceName;
         this.version = version;
         this.methodName = methodName;
         this.parameterTypes = parameterTypes;
@@ -55,7 +55,7 @@ public class RpcRequest extends Message {
     @Override
     public String toString() {
         return "RpcRequest{" +
-                "apiName='" + apiName + '\'' +
+                "interfaceName='" + interfaceName + '\'' +
                 ", version='" + version + '\'' +
                 ", methodName='" + methodName + '\'' +
                 ", parameterTypes=" + Arrays.toString(parameterTypes) +
