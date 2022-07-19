@@ -1,7 +1,7 @@
 package com.moon.rpc.transport.loadbalance;
 
 
-import com.moon.rpc.transport.registry.Invoker;
+import com.moon.rpc.transport.registry.InstanceNode;
 
 import java.util.List;
 
@@ -12,6 +12,6 @@ import java.util.List;
  */
 public interface LoadBalance {
 
-    Invoker select(List<Invoker> list);
+    InstanceNode select(List<InstanceNode> list);
 
 }

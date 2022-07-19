@@ -5,7 +5,7 @@ import com.alibaba.nacos.api.naming.NamingFactory;
 import com.alibaba.nacos.api.naming.NamingService;
 import com.alibaba.nacos.api.naming.pojo.Instance;
 import com.moon.rpc.transport.loadbalance.LoadBalance;
-import com.moon.rpc.transport.registry.Invoker;
+import com.moon.rpc.transport.registry.InstanceNode;
 import com.moon.rpc.transport.registry.ServiceDiscovery;
 import lombok.extern.slf4j.Slf4j;
 
@@ -44,7 +44,7 @@ public class NacosServiceDiscovery implements ServiceDiscovery {
      * @return
      */
     @Override
-    public Invoker select(String serviceName, Set<Invoker> invoked) {
+    public InstanceNode select(String serviceName, Set<InstanceNode> invoked) {
         // TODO 重选前应该再次验证服务器是否可用
         // 获取服务器列表
         List<Instance> instanceList = null;
@@ -56,52 +56,52 @@ public class NacosServiceDiscovery implements ServiceDiscovery {
         if (instanceList.size() == 0) {
             throw new RuntimeException("找不到对应服务");
         }
-        List<Invoker> invokers = new ArrayList<>(instanceList.size());
+        List<InstanceNode> instanceNodes = new ArrayList<>(instanceList.size());
         for (Instance instance : instanceList) {
-            invokers.add(new Invoker(serviceName, instance.getIp(), instance.getPort()));
+            instanceNodes.add(new InstanceNode(serviceName, instance.getIp(), instance.getPort()));
         }
-        return doSelect(invokers, invoked);
+        return doSelect(instanceNodes, invoked);
 
     }
 
-    private Invoker doSelect(List<Invoker> invokers, Set<Invoker> invoked) {
-        if (invokers.size() == 1) {
-            return invokers.get(0);
+    private InstanceNode doSelect(List<InstanceNode> instanceNodes, Set<InstanceNode> invoked) {
+        if (instanceNodes.size() == 1) {
+            return instanceNodes.get(0);
         }
-        Invoker invoker = loadBalance.select(invokers);
-        if (invoked.contains(invoker)) {
+        InstanceNode instanceNode = loadBalance.select(instanceNodes);
+        if (invoked.contains(instanceNode)) {
             // 重新进行选择
             // * Reselect, use invokers not in `selected` first, if all invokers are in `selected`,
             // * just pick an available one using loadbalance policy.
-            invoker = reselect(invokers, invoked, loadBalance);
+            instanceNode = reselect(instanceNodes, invoked, loadBalance);
         }
-        return invoker;
+        return instanceNode;
     }
 
-    private Invoker reselect(List<Invoker> invokers, Set<Invoker> invoked, LoadBalance loadBalance) {
+    private InstanceNode reselect(List<InstanceNode> instanceNodes, Set<InstanceNode> invoked, LoadBalance loadBalance) {
         // 1. Try picking some invokers not in `selected`.
-        List<Invoker> reselectInvokers = new ArrayList<>();
-        for (Invoker invoker : invokers) {
-            if (invoked.contains(invoker)) continue;
-            reselectInvokers.add(invoker);
+        List<InstanceNode> reselectInstanceNodes = new ArrayList<>();
+        for (InstanceNode instanceNode : instanceNodes) {
+            if (invoked.contains(instanceNode)) continue;
+            reselectInstanceNodes.add(instanceNode);
         }
 
         // 2. 重选列表不为空
-        if (!reselectInvokers.isEmpty()) {
-            return loadBalance.select(reselectInvokers);
+        if (!reselectInstanceNodes.isEmpty()) {
+            return loadBalance.select(reselectInstanceNodes);
         }
 
         // 3. 重选列表为空，则只能从已经选过的列表中继续选
         if (invoked != null) {
-            for (Invoker invoker : invoked) {
-                reselectInvokers.add(invoker);
+            for (InstanceNode instanceNode : invoked) {
+                reselectInstanceNodes.add(instanceNode);
             }
         }
 
         // 4. If reselectInvokers is not empty after re-check.
         //    Pick an available invoker using loadBalance policy
-        if (!reselectInvokers.isEmpty()) {
-            return loadBalance.select(reselectInvokers);
+        if (!reselectInstanceNodes.isEmpty()) {
+            return loadBalance.select(reselectInstanceNodes);
         }
 
         // 5. No invoker match, return null.

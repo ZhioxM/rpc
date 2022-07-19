@@ -2,7 +2,7 @@ package com.moon.rpc.transport.loadbalance.impl;
 
 import com.alibaba.nacos.api.naming.pojo.Instance;
 import com.moon.rpc.transport.loadbalance.LoadBalance;
-import com.moon.rpc.transport.registry.Invoker;
+import com.moon.rpc.transport.registry.InstanceNode;
 
 import java.util.*;
 
@@ -11,7 +11,7 @@ import java.util.*;
  */
 public class IpHashLoadBalance implements LoadBalance {
     @Override
-    public Invoker select(List<Invoker> list) {
+    public InstanceNode select(List<InstanceNode> list) {
         return null;
     }
 }

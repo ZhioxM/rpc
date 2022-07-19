@@ -15,7 +15,7 @@ import lombok.*;
 @AllArgsConstructor
 @ToString
 @EqualsAndHashCode
-public class Invoker {
+public class InstanceNode {
     /**
      * 服务名称
      */

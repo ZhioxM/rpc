@@ -7,22 +7,19 @@ package com.moon.rpc.client.exception;
  * @date 2022/7/18 17:19
  */
 public class RpcException extends RuntimeException {
-    public static final int UNKNOWN_EXCEPTION = 0;
-    public static final int NETWORK_EXCEPTION = 1;
-    public static final int TIMEOUT_EXCEPTION = 2;
-    public static final int BIZ_EXCEPTION = 3;
-    public static final int FORBIDDEN_EXCEPTION = 4;
-    public static final int SERIALIZATION_EXCEPTION = 5;
-    public static final int NO_INVOKER_AVAILABLE_AFTER_FILTER = 6;
-    public static final int LIMIT_EXCEEDED_EXCEPTION = 7;
-    public static final int TIMEOUT_TERMINATE = 8;
-    public static final int REGISTRY_EXCEPTION = 9;
-    public static final int ROUTER_CACHE_NOT_BUILD = 10;
-    public static final int METHOD_NOT_FOUND = 11;
-    public static final int VALIDATION_EXCEPTION = 12;
-    private static final long serialVersionUID = 7815426752583648734L;
+    /**
+     * 业务异常使用奇数, 非业务异常使用偶数
+     */
 
-    protected int code;
+    /** 超时异常 */
+    public static final int TIMEOUT_EXCEPTION = 0;
+
+    /**
+     * 通信过程中发生的异常
+     */
+    public static final int TRANSPORT_EXCEPTION = 2;
+
+    private int code;
 
     public RpcException() {
         super();
@@ -40,7 +37,7 @@ public class RpcException extends RuntimeException {
         super(cause);
     }
 
-    public boolean isTimeOut() {
-        return code == TIMEOUT_EXCEPTION;
+    public boolean isTansaction() {
+        return (code & 1) == 1;
     }
 }

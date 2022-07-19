@@ -4,7 +4,7 @@ import com.alibaba.nacos.api.exception.NacosException;
 import com.alibaba.nacos.api.naming.NamingFactory;
 import com.alibaba.nacos.api.naming.NamingService;
 import com.alibaba.nacos.api.naming.pojo.Instance;
-import com.moon.rpc.transport.registry.Invoker;
+import com.moon.rpc.transport.registry.InstanceNode;
 import com.moon.rpc.transport.registry.ServiceRegistry;
 import lombok.extern.slf4j.Slf4j;
 
@@ -50,13 +50,13 @@ public class NacosServiceRegistry implements ServiceRegistry {
      * @return
      * @throws NacosException
      */
-    public List<Invoker> getAllInstance(String serverName) throws NacosException {
+    public List<InstanceNode> getAllInstance(String serverName) throws NacosException {
         List<Instance> instances = namingService.getAllInstances(serverName);
-        List<Invoker> invokers = new ArrayList<>();
+        List<InstanceNode> instanceNodes = new ArrayList<>();
         for (Instance instance : instances) {
-            Invoker invoker = new Invoker(serverName, instance.getIp(), instance.getPort());
-            invokers.add(invoker);
+            InstanceNode instanceNode = new InstanceNode(serverName, instance.getIp(), instance.getPort());
+            instanceNodes.add(instanceNode);
         }
-        return invokers;
+        return instanceNodes;
     }
 }

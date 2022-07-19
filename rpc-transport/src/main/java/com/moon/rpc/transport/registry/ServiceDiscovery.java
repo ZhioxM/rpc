@@ -16,6 +16,6 @@ public interface ServiceDiscovery {
     /**
      * 根据服务名找到服务器节点
      */
-    Invoker select(String serviceName, Set<Invoker> invoked) throws NacosException;
+    InstanceNode select(String serviceName, Set<InstanceNode> invoked) throws NacosException;
 
 }
