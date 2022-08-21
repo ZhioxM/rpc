@@ -72,6 +72,8 @@ public class RpcClientProxyInvocation implements InvocationHandler {
             // 4 处理响应结果
             if (rpcResponse == null) {
                 log.error("请求超时");
+                // TODO 超时后是不是要把LocalResponseFutureFactory中将这次请求对应的future删除掉，不然之后重试拿到的结果结果可能是之前的请求的响应。但是如此一来，之前的那个sequenceID是不是得重新生成，因为这样就不能标识一次请求和响应、
+                // 超时后，我们无法阻止客户端channelRead触发，如果不生成新的id，那么即使移除了future，之前的请求超时响应回来后还是会非后面添加进去的future错误设置结果，因为他们的sequenceID是一样的
                 selected.add(instanceNode);
             } else {
                 // 业务异常（没有必要重试）
