@@ -57,25 +57,25 @@ public class NacosServiceDiscovery implements ServiceDiscovery {
         if (instanceList.size() == 0) {
             throw new RuntimeException("找不到对应服务");
         }
-        List<InstanceNode> instanceNodes = instanceList.stream().map(e -> new InstanceNode(serviceName, e.getIp(), e.getPort())).collect(Collectors.toList());
-        return doSelect(instanceNodes, invoked);
+        List<InstanceNode> instanceNodes = instanceList.stream().map(e -> new InstanceNode(e.getIp(), e.getPort())).collect(Collectors.toList());
+        return doSelect(instanceNodes, invoked, serviceName);
     }
 
-    private InstanceNode doSelect(List<InstanceNode> instanceNodes, Set<InstanceNode> invoked) {
+    private InstanceNode doSelect(List<InstanceNode> instanceNodes, Set<InstanceNode> invoked, String serviceName) {
         if (instanceNodes.size() == 1) {
             return instanceNodes.get(0);
         }
-        InstanceNode instanceNode = loadBalance.select(instanceNodes);
+        InstanceNode instanceNode = loadBalance.select(instanceNodes, serviceName);
         if (invoked.contains(instanceNode)) {
             // 重新进行选择
             // * Reselect, use invokers not in `selected` first, if all invokers are in `selected`,
             // * just pick an available one using loadbalance policy.
-            instanceNode = reselect(instanceNodes, invoked, loadBalance);
+            instanceNode = reselect(instanceNodes, invoked, loadBalance, serviceName);
         }
         return instanceNode;
     }
 
-    private InstanceNode reselect(List<InstanceNode> instanceNodes, Set<InstanceNode> invoked, LoadBalance loadBalance) {
+    private InstanceNode reselect(List<InstanceNode> instanceNodes, Set<InstanceNode> invoked, LoadBalance loadBalance, String serviceName) {
         // 1. Try picking some invokers not in `selected`.
         List<InstanceNode> reselectInstanceNodes = new ArrayList<>();
         for (InstanceNode instanceNode : instanceNodes) {
@@ -85,7 +85,7 @@ public class NacosServiceDiscovery implements ServiceDiscovery {
 
         // 2. 重选列表不为空
         if (!reselectInstanceNodes.isEmpty()) {
-            return loadBalance.select(reselectInstanceNodes);
+            return loadBalance.select(reselectInstanceNodes, serviceName);
         }
 
         // 3. 重选列表为空，则只能从已经选过的列表中继续选
@@ -98,7 +98,7 @@ public class NacosServiceDiscovery implements ServiceDiscovery {
         // 4. If reselectInvokers is not empty after re-check.
         //    Pick an available invoker using loadBalance policy
         if (!reselectInstanceNodes.isEmpty()) {
-            return loadBalance.select(reselectInstanceNodes);
+            return loadBalance.select(reselectInstanceNodes, serviceName);
         }
 
         // 5. No invoker match, return null.

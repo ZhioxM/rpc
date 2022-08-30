@@ -19,7 +19,7 @@ public class InstanceNode {
     /**
      * 服务名称
      */
-    private String interfaceName;
+    // private String interfaceName;
 
     /**
      * 地址

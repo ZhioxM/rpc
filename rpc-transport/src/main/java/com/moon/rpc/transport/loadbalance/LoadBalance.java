@@ -12,6 +12,5 @@ import java.util.List;
  */
 public interface LoadBalance {
 
-    InstanceNode select(List<InstanceNode> list);
-
+    InstanceNode select(List<InstanceNode> list, String serviceKey);
 }

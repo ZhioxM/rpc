@@ -54,7 +54,7 @@ public class NacosServiceRegistry implements ServiceRegistry {
         List<Instance> instances = namingService.getAllInstances(serverName);
         List<InstanceNode> instanceNodes = new ArrayList<>();
         for (Instance instance : instances) {
-            InstanceNode instanceNode = new InstanceNode(serverName, instance.getIp(), instance.getPort());
+            InstanceNode instanceNode = new InstanceNode(instance.getIp(), instance.getPort());
             instanceNodes.add(instanceNode);
         }
         return instanceNodes;

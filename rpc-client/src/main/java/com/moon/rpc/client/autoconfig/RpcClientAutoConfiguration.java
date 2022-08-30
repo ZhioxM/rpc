@@ -2,9 +2,9 @@ package com.moon.rpc.client.autoconfig;
 
 
 import com.moon.rpc.client.proxy.RpcClientProxy;
+import com.moon.rpc.transport.constant.impl.RandomLoadBalance;
+import com.moon.rpc.transport.constant.impl.RoundRobinLoadBalance;
 import com.moon.rpc.transport.loadbalance.LoadBalance;
-import com.moon.rpc.transport.loadbalance.impl.RandomLoadBalance;
-import com.moon.rpc.transport.loadbalance.impl.RoundRobinLoadBalance;
 import com.moon.rpc.transport.registry.ServiceDiscovery;
 import com.moon.rpc.transport.registry.impl.NacosServiceDiscovery;
 import org.springframework.beans.factory.annotation.Autowired;

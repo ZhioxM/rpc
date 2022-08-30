@@ -1,4 +1,4 @@
-package com.moon.rpc.transport.loadbalance.impl;
+package com.moon.rpc.transport.constant.impl;
 
 import com.moon.rpc.transport.loadbalance.LoadBalance;
 import com.moon.rpc.transport.registry.InstanceNode;
@@ -21,7 +21,7 @@ public class RandomLoadBalance implements LoadBalance {
      * @return
      */
     @Override
-    public InstanceNode select(List<InstanceNode> list) {
+    public InstanceNode select(List<InstanceNode> list, String serviceKey) {
         return list.get(random.nextInt(list.size()));
     }
 }

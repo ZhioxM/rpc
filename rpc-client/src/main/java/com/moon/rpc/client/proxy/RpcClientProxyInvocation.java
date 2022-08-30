@@ -123,7 +123,7 @@ public class RpcClientProxyInvocation implements InvocationHandler {
                 // 5. 是否需要返回值？
                 if (!rpcReference.oneWay()) {
                     // 5.1 将future存储在ThreadLocal中
-                    // TODO 确认业务调用线程和这里发送线程是不是同一个线程
+                    // TODO 确认业务调用线程和这里发送线程是不是同一个线程 已经确认，这里还是用户线程
                     // ResponseFuture存储RpcResponse
                     // InvokeCompletableFuture存储RPC方法的返回值
                     InvokeCompletableFuture<?> completableFuture = new InvokeCompletableFuture<>(future);
