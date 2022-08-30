@@ -34,9 +34,9 @@ public class RpcServer {
     private final String host;
     private final int port;
 
-    NioEventLoopGroup boss = new NioEventLoopGroup();
-    NioEventLoopGroup work = new NioEventLoopGroup();
-    ServerBootstrap serverBootstrap = new ServerBootstrap();
+    private NioEventLoopGroup boss = new NioEventLoopGroup();
+    private NioEventLoopGroup work = new NioEventLoopGroup();
+    private ServerBootstrap serverBootstrap = new ServerBootstrap();
 
     public RpcServer(String host, int port) {
         this.host = host;

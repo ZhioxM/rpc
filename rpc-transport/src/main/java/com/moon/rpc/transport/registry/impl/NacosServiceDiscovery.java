@@ -12,6 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * 服务发现
@@ -56,12 +57,8 @@ public class NacosServiceDiscovery implements ServiceDiscovery {
         if (instanceList.size() == 0) {
             throw new RuntimeException("找不到对应服务");
         }
-        List<InstanceNode> instanceNodes = new ArrayList<>(instanceList.size());
-        for (Instance instance : instanceList) {
-            instanceNodes.add(new InstanceNode(serviceName, instance.getIp(), instance.getPort()));
-        }
+        List<InstanceNode> instanceNodes = instanceList.stream().map(e -> new InstanceNode(serviceName, e.getIp(), e.getPort())).collect(Collectors.toList());
         return doSelect(instanceNodes, invoked);
-
     }
 
     private InstanceNode doSelect(List<InstanceNode> instanceNodes, Set<InstanceNode> invoked) {

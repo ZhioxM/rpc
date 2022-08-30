@@ -28,6 +28,11 @@ public @interface RpcReference {
      */
     String interfaceName() default "";
 
+    /**
+     * 版本号
+     *
+     * @return
+     */
     String version();
 
     /**
@@ -51,4 +56,16 @@ public @interface RpcReference {
      */
     String loadbalance() default "";
 
+    /**
+     * 是否采用异步调用的方式
+     *
+     * @return
+     */
+    boolean async() default false;
+
+    /**
+     * 异步调用是否需要返回值，即是否是oneWay
+     * @return
+     */
+    boolean oneWay() default false;
 }

@@ -39,10 +39,10 @@ public class RpcServerBeanPostProcessor implements BeanPostProcessor, CommandLin
      */
     @Override
     public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
-        // 获取这个Bean对应的类上的RpcService注解
-        RpcService rpcService = bean.getClass().getAnnotation(RpcService.class);
-        // 如果不为空则代表这个Bean使用了这个注解
-        if (rpcService != null) {
+        // 判断这个Bean是不是被RpcService注解修饰
+        if(bean.getClass().isAnnotationPresent(RpcService.class)) {
+            // 获取这个Bean对应的类上的RpcService注解
+            RpcService rpcService = bean.getClass().getAnnotation(RpcService.class);
             try {
                 // 获取接口名字(如果没有指定接口的名字，则使用自身实现的接口的名字，使用getName)
                 String serviceName = StringUtil.isNullOrEmpty(rpcService.name()) ? bean.getClass().getInterfaces()[0].getName() : rpcService.name();

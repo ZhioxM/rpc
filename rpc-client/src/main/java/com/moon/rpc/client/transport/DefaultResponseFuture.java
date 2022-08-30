@@ -22,7 +22,7 @@ public class DefaultResponseFuture<T> implements ResponseFuture<T> {
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
-        return null;
+        return rpcResponse;
     }
 
     @Override

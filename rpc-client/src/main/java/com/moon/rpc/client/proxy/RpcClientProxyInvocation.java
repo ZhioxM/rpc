@@ -2,6 +2,8 @@ package com.moon.rpc.client.proxy;
 
 import com.alibaba.nacos.api.exception.NacosException;
 import com.moon.rpc.client.annotation.RpcReference;
+import com.moon.rpc.client.async.InvokeCompletableFuture;
+import com.moon.rpc.client.async.RpcContext;
 import com.moon.rpc.client.exception.TimeoutException;
 import com.moon.rpc.client.exception.TransactionException;
 import com.moon.rpc.client.exception.TransportException;
@@ -65,28 +67,34 @@ public class RpcClientProxyInvocation implements InvocationHandler {
             try {
                 rpcResponse = doInvoke(rpcRequest, instanceNode);
             } catch (TransportException e) {
-                // 客户端发送消息失败，也进行充实
+                // 客户端发送消息失败，也进行重试
                 selected.add(instanceNode);
                 continue;
             }
             // 4 处理响应结果
-            if (rpcResponse == null) {
-                log.error("请求超时");
-                // TODO 超时后是不是要把LocalResponseFutureFactory中将这次请求对应的future删除掉，不然之后重试拿到的结果结果可能是之前的请求的响应。但是如此一来，之前的那个sequenceID是不是得重新生成，因为这样就不能标识一次请求和响应、
-                // 超时后，我们无法阻止客户端channelRead触发，如果不生成新的id，那么即使移除了future，之前的请求超时响应回来后还是会非后面添加进去的future错误设置结果，因为他们的sequenceID是一样的
-                selected.add(instanceNode);
+            // TODO 目前只处理SYNC的超时重试
+            if (rpcReference.async()) {
+                return null;
             } else {
-                // 业务异常（没有必要重试）
-                if (rpcResponse.getException() != null) {
-                    log.error("RPC调用异常");
-                    throw new TransactionException(rpcResponse.getException().getMessage());
+                if (rpcResponse == null) {
+                    log.error("请求超时");
+                    // TODO 超时后是不是要把LocalResponseFutureFactory中将这次请求对应的future删除掉，不然之后重试拿到的结果结果可能是之前的请求的响应。但是如此一来，之前的那个sequenceID是不是得重新生成，因为这样就不能标识一次请求和响应、
+                    // 超时后，我们无法阻止客户端channelRead触发，如果不生成新的id，那么即使移除了future，之前的请求超时响应回来后还是会非后面添加进去的future错误设置结果，因为他们的sequenceID是一样的
+                    selected.add(instanceNode);
                 } else {
-                    return rpcResponse.getReturnValue();
+                    // 业务异常（没有必要重试）
+                    if (rpcResponse.getException() != null) {
+                        log.error("RPC调用异常");
+                        throw new TransactionException(rpcResponse.getException().getMessage());
+                    } else {
+                        return rpcResponse.getReturnValue();
+                    }
                 }
+                // 重试还是失败了
+                throw new TimeoutException("Fail to call method " + method.getName() + ". Tried " + len + " times in the service");
             }
         }
-        // 重试还是失败了
-        throw new TimeoutException("Fail to call method " + method.getName() + ". Tried " + len + " times in the service");
+        return null;
     }
 
     // 服务发现
@@ -100,7 +108,6 @@ public class RpcClientProxyInvocation implements InvocationHandler {
         ResponseFuture<RpcResponse> future = new DefaultResponseFuture<>();
         // TODO 这里的超时是只要重试的次数内发送的所有请求中有一个能拿到结果就行了
         LocalRpcResponseFactory.add(rpcRequest.getSequenceId(), future);
-
         // 3. 进行网络通信，发起RPC调用，将消息对象发送出去
         // 3.1 获取客户端与该服务器的Channel
         Channel channel = RemoteChannelFactory.get(instanceNode);
@@ -111,8 +118,21 @@ public class RpcClientProxyInvocation implements InvocationHandler {
         RpcResponse rpcResponse = null;
         if (channelFuture.isSuccess()) {
             log.info("客户端发送消息成功");
-            // 4. 异步等待 超时 阻塞等待RPC结果
-            rpcResponse = future.get(rpcReference.timeout(), TimeUnit.MILLISECONDS);
+            // 4. 判断调用类型是否为同步
+            if (rpcReference.async()) {
+                // 5. 是否需要返回值？
+                if (!rpcReference.oneWay()) {
+                    // 5.1 将future存储在ThreadLocal中
+                    // TODO 确认业务调用线程和这里发送线程是不是同一个线程
+                    // ResponseFuture存储RpcResponse
+                    // InvokeCompletableFuture存储RPC方法的返回值
+                    InvokeCompletableFuture<?> completableFuture = new InvokeCompletableFuture<>(future);
+                    RpcContext.setCompletableFuture(rpcRequest.getSequenceId(), future, completableFuture);
+                }
+            } else {
+                // 6. 阻塞等待RPC结果
+                rpcResponse = future.get(rpcReference.timeout(), TimeUnit.MILLISECONDS);
+            }
         } else {
             log.error("客户端消息发送失败");
             throw new TransportException("客户端发送消息失败");

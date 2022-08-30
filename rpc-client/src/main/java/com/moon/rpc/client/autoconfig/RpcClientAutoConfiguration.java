@@ -9,6 +9,7 @@ import com.moon.rpc.transport.registry.ServiceDiscovery;
 import com.moon.rpc.transport.registry.impl.NacosServiceDiscovery;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -40,17 +41,19 @@ public class RpcClientAutoConfiguration {
     @Primary
     @Bean(name = "loadBalance")
     @ConditionalOnMissingBean
-    //@ConditionalOnProperty(prefix = "rpc.client", name = "balance", havingValue = "randomBalance", matchIfMissing = true)
+    @ConditionalOnProperty(prefix = "rpc.client", name = "balance", havingValue = "randomBalance", matchIfMissing = true)
     @Order(0)
     public LoadBalance randomBalance() {
+        System.out.println("random balance");
         return new RandomLoadBalance();
     }
 
     @Bean(name = "loadBalance")
     @ConditionalOnMissingBean
     @Order(0)
-    //@ConditionalOnProperty(prefix = "rpc.client", name = "balance", havingValue = "fullRoundBalance")
+    @ConditionalOnProperty(prefix = "rpc.client", name = "balance", havingValue = "round")
     public LoadBalance roundRobinLoadBalance() {
+        System.out.println("round robin");
         return new RoundRobinLoadBalance();
     }
 

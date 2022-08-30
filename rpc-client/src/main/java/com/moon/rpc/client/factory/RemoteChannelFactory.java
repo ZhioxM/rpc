@@ -36,6 +36,7 @@ public class RemoteChannelFactory {
 
     /**
      * 客户端与服务端的所有连接通道
+     * key:host+port -> value:channel
      */
     private static final Map<String, Channel> channels = new ConcurrentHashMap<>();
 

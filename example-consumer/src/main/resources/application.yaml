@@ -1,2 +1,5 @@
-sever:
+server:
   port: 80
+rpc:
+  client:
+    loadbalance: random
