@@ -1,11 +1,9 @@
 package com.moon.rpc.controller;
 
 import com.moon.rpc.api.service.HelloService;
-import com.moon.rpc.client.annotation.RpcReference;
 import com.moon.rpc.client.async.RpcContext;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RestController;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -14,10 +12,10 @@ import java.util.concurrent.ExecutionException;
  * @Author: Mzx
  * @Date: 2022/8/30 10:14
  */
-@RestController
+// @RestController
 @Slf4j
 public class HelloAsyncController {
-    @RpcReference(version = "1.0", async = true)
+    // @RpcReference(version = "1.1", async = true)
     private HelloService helloService;
 
     @GetMapping("/hello/async")

@@ -4,6 +4,7 @@ import com.alibaba.nacos.api.exception.NacosException;
 import com.moon.rpc.client.annotation.RpcReference;
 import com.moon.rpc.client.async.RpcContext;
 import com.moon.rpc.client.factory.LocalRpcResponseFactory;
+import com.moon.rpc.client.factory.RemoteChannelFactory;
 import com.moon.rpc.client.generic.RpcGenericService;
 import com.moon.rpc.transport.dto.RpcRequest;
 import com.moon.rpc.transport.dto.RpcResponse;
@@ -11,13 +12,17 @@ import com.moon.rpc.transport.exception.RpcException;
 import com.moon.rpc.transport.protocol.SequenceIdGenerator;
 import com.moon.rpc.transport.registry.InstanceNode;
 import com.moon.rpc.transport.registry.ServiceDiscovery;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
 import lombok.extern.slf4j.Slf4j;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
 /**
  * @author mzx
@@ -62,7 +67,8 @@ public class RpcClientProxyInvocation implements InvocationHandler {
                 methodName,
                 parameterTypes,
                 parameters,
-                timeout
+                timeout,
+                System.currentTimeMillis()
         );
         // 4. 判断接口返回值是什么，如果接口返回值是CompleteFuture类，则认为是异步的，那么接口就需要同时提供异步和同步两种方法
         boolean isReturnFuture = CompletableFuture.class == method.getReturnType();
@@ -140,34 +146,76 @@ public class RpcClientProxyInvocation implements InvocationHandler {
     }
 
     // 服务发现
-    private InstanceNode select(String interfaceName, Set<InstanceNode> invoked) throws NacosException {
+    private InstanceNode select(String interfaceName, Set<InstanceNode> selected) throws NacosException {
         // 根据配置的负载均衡策略，获取服务器的地址
-        return serviceDiscovery.select(interfaceName, invoked);
+        InstanceNode select = serviceDiscovery.select(interfaceName, selected);
+        // 添加到已经被选择的结点列表
+        selected.add(select);
+        return select;
     }
 
     private CompletableFuture<RpcResponse> doInvoke(RpcRequest rpcRequest) throws NacosException {
         CompletableFuture<RpcResponse> future = new CompletableFuture<>();
-        CompletableFuture<RpcResponse> result = new CompletableFuture<>();
-        retry(rpcRequest, future, result, 0);
+        Set<InstanceNode> selected = new HashSet<>();
+        retry(rpcRequest, future, 0, selected);
         return future;
     }
 
-    private void retry(RpcRequest rpcRequest, CompletableFuture<RpcResponse> future, CompletableFuture<RpcResponse> result, int retries) {
-        // 将Future类存入缓存中
+    private void retry(RpcRequest rpcRequest, CompletableFuture<RpcResponse> future, int retries, Set<InstanceNode> selected) {
+        System.out.println("第" + retries + "次发送");
+        CompletableFuture<RpcResponse> result = new CompletableFuture<>();
+        // 将result存入缓存中
         LocalRpcResponseFactory.add(rpcRequest.getSequenceId(), result);
+        try {
+            sendRequest(rpcRequest, selected);
+        } catch (RpcException e) {
+            result.completeExceptionally(e);
+        }
         // 异步处理结果
         // TODO jdk8的Completable不支持异步超时等待机制，jdk9后才实现。自己封装一个，参考https://blog.csdn.net/weixin_40118044/article/details/121687726
+        // result在ChannelRead中被赋值
         result.whenComplete((res, err) -> {
-            Throwable e = err == null ? res.getException() : err;
-            if (err == null) {
-                future.complete(res);
-            } else if (rpcRequest.isTimeOut()) {
-                future.completeExceptionally(new RpcException(RpcException.TIMEOUT_EXCEPTION, "调用超时了"));
-            } else if (retries > rpcReference.retries()) {
-                future.completeExceptionally(new RpcException(RpcException.UNKNOWN_EXCEPTION, "重传了" + retries + "次，还是失败了，失败原因：" + err.getMessage()));
-            } else {
-                retry(rpcRequest, future, result, retries + 1);
-            }
-        });
+                  Throwable e = err == null ? res.getException() : err;
+                  if (err == null) {
+                      future.complete(res);
+                  } else if (rpcRequest.isTimeOut()) {
+                      future.completeExceptionally(new RpcException(RpcException.TIMEOUT_EXCEPTION, "调用超时了"));
+                  } else if (retries >= rpcReference.retries()) {
+                      future.completeExceptionally(new RpcException(RpcException.UNKNOWN_EXCEPTION, "重传了" + retries + "次，还是失败了，失败原因：" + err.getMessage()));
+                  } else {
+                      // 重试后，超时时间减少
+                      retry(rpcRequest, future, retries + 1, selected);
+                  }
+              })
+              .orTimeout(rpcReference.timeout(), TimeUnit.MILLISECONDS)
+              .exceptionally(new Function<Throwable, RpcResponse>() {
+                  @Override
+                  public RpcResponse apply(Throwable throwable) {
+                      RpcResponse rpcResponse = new RpcResponse();
+                      rpcResponse.setException(new RpcException(RpcException.TIMEOUT_EXCEPTION, "调用超时了"));
+                      return rpcResponse;
+                  }
+              });
+    }
+
+    private void sendRequest(RpcRequest rpcRequest, Set<InstanceNode> selected) {
+        InstanceNode candidate = null;
+        // 选择节点
+        try {
+            candidate = select(rpcRequest.getInterfaceName(), selected);
+        } catch (NacosException e) {
+            throw new RpcException(RpcException.UNKNOWN_EXCEPTION, "nacos异常");
+        }
+        // 选择通道
+        Channel channel = RemoteChannelFactory.get(candidate);
+        ChannelFuture writeFuture = channel.writeAndFlush(rpcRequest);
+        try {
+            writeFuture.sync();
+        } catch (InterruptedException e) {
+            throw new RpcException(RpcException.UNKNOWN_EXCEPTION, "interrupted");
+        }
+        if (!writeFuture.isSuccess()) {
+            throw new RpcException(RpcException.NETWORK_EXCEPTION, "发送消息失败");
+        }
     }
 }

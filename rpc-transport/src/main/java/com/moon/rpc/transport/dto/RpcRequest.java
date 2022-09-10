@@ -47,7 +47,7 @@ public class RpcRequest extends Message {
     private long createTime;
 
 
-    public RpcRequest(int sequenceId, String interfaceName, String version, String methodName, Class<?>[] parameterTypes, Object[] parameterValue, long timeout) {
+    public RpcRequest(int sequenceId, String interfaceName, String version, String methodName, Class<?>[] parameterTypes, Object[] parameterValue, long timeout, long now) {
         this.sequenceId = sequenceId;
         this.interfaceName = interfaceName;
         this.version = version;
@@ -55,6 +55,7 @@ public class RpcRequest extends Message {
         this.parameterTypes = parameterTypes;
         this.parameterValue = parameterValue;
         this.timeout = timeout;
+        this.createTime = now;
     }
 
     @Override

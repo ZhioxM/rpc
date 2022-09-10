@@ -1,4 +1,4 @@
 # 使用yaml文件配置才会生效。使用properties文件配置不生效，不知道为啥
 rpc:
   server:
-    port: 8081
+    port: 8083
