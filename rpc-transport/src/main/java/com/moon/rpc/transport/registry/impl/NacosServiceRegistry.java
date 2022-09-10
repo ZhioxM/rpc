@@ -9,7 +9,10 @@ import com.moon.rpc.transport.registry.ServiceRegistry;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+
+import static com.moon.rpc.transport.constant.Constants.*;
 
 /**
  * nacos注册
@@ -21,8 +24,10 @@ import java.util.List;
 public class NacosServiceRegistry implements ServiceRegistry {
 
     private NamingService namingService;
+    private Integer warmUp;
 
-    public NacosServiceRegistry(String registryAddr) {
+    public NacosServiceRegistry(String registryAddr, Integer warmUp) {
+        this.warmUp = warmUp;
         try {
             namingService = NamingFactory.createNamingService(registryAddr);
         } catch (NacosException e) {
@@ -34,9 +39,18 @@ public class NacosServiceRegistry implements ServiceRegistry {
      * 服务注册
      */
     @Override
-    public void register(String serviceName, String host, int port) {
+    public void register(String serviceName, String host, int port, String groupName, int weight) {
         try {
-            namingService.registerInstance(serviceName, host, port);
+            Instance instance = new Instance();
+            instance.setWeight((double) weight);
+            instance.setIp(host);
+            instance.setPort(port);
+            HashMap<String, String> metaDate = new HashMap<>();
+            // 将启动时间和预热时间存入注册中心中
+            metaDate.put(REMOTE_TIMESTAMP_KEY, System.currentTimeMillis() + "");
+            metaDate.put(WARM_UP_KEY, warmUp == null ? String.valueOf(DEFAULT_WARM_UP) : String.valueOf(warmUp));
+            instance.setMetadata(metaDate);
+            namingService.registerInstance(serviceName, groupName, instance);
             log.debug(serviceName + " 服务成功注册到远程服务中心");
         } catch (NacosException e) {
             throw new RuntimeException("注册Nacos出现异常");
@@ -54,7 +68,7 @@ public class NacosServiceRegistry implements ServiceRegistry {
         List<Instance> instances = namingService.getAllInstances(serverName);
         List<InstanceNode> instanceNodes = new ArrayList<>();
         for (Instance instance : instances) {
-            InstanceNode instanceNode = new InstanceNode(instance.getIp(), instance.getPort());
+            InstanceNode instanceNode = new InstanceNode(instance.getIp(), instance.getPort(), (int) instance.getWeight(), instance.getMetadata());
             instanceNodes.add(instanceNode);
         }
         return instanceNodes;

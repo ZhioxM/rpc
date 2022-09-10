@@ -27,6 +27,11 @@ public class RpcServerProperties {
      */
     private String registryAddr = "localhost:8848";
 
+    /**
+     * 启动预热时间
+     */
+    private Integer warmUp;
+
     public String getHost() {
         return host;
     }
@@ -49,5 +54,13 @@ public class RpcServerProperties {
 
     public void setRegistryAddr(String registryAddr) {
         this.registryAddr = registryAddr;
+    }
+
+    public Integer getWarmUp() {
+        return warmUp;
+    }
+
+    public void setWarmUp(Integer warm_up) {
+        this.warmUp = warm_up;
     }
 }

@@ -1,5 +1,7 @@
 package com.moon.rpc.client.transport;
 
+import com.moon.rpc.transport.exception.RpcException;
+
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -28,13 +30,14 @@ public class DefaultResponseFuture<T> implements ResponseFuture<T> {
     @Override
     public T get(long timeout, TimeUnit timeUnit) {
         try {
-            if(countDownLatch.await(timeout, timeUnit)) {
+            if (countDownLatch.await(timeout, timeUnit)) {
                 return rpcResponse;
+            } else {
+                throw new RpcException(RpcException.TIMEOUT_EXCEPTION, "Call fails, timeout");
             }
         } catch (InterruptedException e) {
-            throw new RuntimeException(e);
+            throw new RpcException(RpcException.UNKNOWN_EXCEPTION, "Call fails, interrupted");
         }
-        return null;
     }
 
     @Override

@@ -1,4 +1,4 @@
-package com.moon.rpc.transport.constant.impl;
+package com.moon.rpc.transport.loadbalance.impl;
 
 import com.moon.rpc.transport.loadbalance.LoadBalance;
 import com.moon.rpc.transport.registry.InstanceNode;

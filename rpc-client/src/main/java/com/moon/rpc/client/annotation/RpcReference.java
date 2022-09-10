@@ -33,7 +33,7 @@ public @interface RpcReference {
      *
      * @return
      */
-    String version();
+    String version() default "1.0";
 
     /**
      * 超时时间，单位ms

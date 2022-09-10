@@ -28,7 +28,7 @@ public class RpcServerAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     public ServiceRegistry serviceRegistry() {
-        return new NacosServiceRegistry(properties.getRegistryAddr());
+        return new NacosServiceRegistry(properties.getRegistryAddr(), properties.getWarmUp());
     }
 
     /**

@@ -31,4 +31,17 @@ public @interface RpcService {
      * @return
      */
     String version() default "1.0";
+
+    /**
+     * 分组
+     * @return
+     */
+    String groupName() default "";
+
+    /**
+     * 权重
+     *
+     * @return
+     */
+    int weight() default -1;
 }

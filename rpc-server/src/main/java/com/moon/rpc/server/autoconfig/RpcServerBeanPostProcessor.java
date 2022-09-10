@@ -11,6 +11,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.boot.CommandLineRunner;
 
+import static com.moon.rpc.transport.constant.Constants.DEFAULT_GROUP_NAME;
+import static com.moon.rpc.transport.constant.Constants.DEFAULT_WEIGHT;
+
 /**
  * @author mzx
  * @date 2022/7/15 13:29
@@ -40,7 +43,7 @@ public class RpcServerBeanPostProcessor implements BeanPostProcessor, CommandLin
     @Override
     public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
         // 判断这个Bean是不是被RpcService注解修饰
-        if(bean.getClass().isAnnotationPresent(RpcService.class)) {
+        if (bean.getClass().isAnnotationPresent(RpcService.class)) {
             // 获取这个Bean对应的类上的RpcService注解
             RpcService rpcService = bean.getClass().getAnnotation(RpcService.class);
             try {
@@ -48,10 +51,14 @@ public class RpcServerBeanPostProcessor implements BeanPostProcessor, CommandLin
                 String serviceName = StringUtil.isNullOrEmpty(rpcService.name()) ? bean.getClass().getInterfaces()[0].getName() : rpcService.name();
                 // 获取版本
                 String version = rpcService.version();
+                // 获取权值
+                int weight = rpcService.weight();
+                // 获取分组
+                String groupName = StringUtil.isNullOrEmpty(rpcService.groupName()) ? DEFAULT_GROUP_NAME : rpcService.groupName();
                 // 保存服务接口
                 LocalServiceFactory.addService(serviceName, version, bean);
                 // 服务注册
-                serviceRegistry.register(serviceName, rpcServerProperties.getHost(), rpcServerProperties.getPort());
+                serviceRegistry.register(serviceName, rpcServerProperties.getHost(), rpcServerProperties.getPort(), groupName, weight == -1 ? DEFAULT_WEIGHT: weight);
             } catch (Exception ex) {
                 log.error("服务注册出错:{}", ex);
             }

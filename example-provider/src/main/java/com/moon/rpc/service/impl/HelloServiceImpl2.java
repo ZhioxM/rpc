@@ -11,14 +11,8 @@ import com.moon.rpc.server.annotation.RpcService;
 public class HelloServiceImpl2 implements HelloService {
     @Override
     public String sayHello(String name) {
-        // 测试超时
-        //try {
-        //    Thread.sleep(2000);
-        //} catch (InterruptedException e) {
-        //    throw new RuntimeException(e);
-        //}
         // 测试异常
-        int i = 1 / 0;
+        // int i = 1 / 0;
         return "你好, " + name + "版本1.1";
     }
 }

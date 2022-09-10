@@ -1,13 +1,11 @@
 package com.moon.rpc.client.async;
 
-import com.moon.rpc.client.exception.TransactionException;
 import com.moon.rpc.client.transport.ResponseFuture;
 import com.moon.rpc.transport.dto.RpcResponse;
+import com.moon.rpc.transport.exception.RpcException;
 
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 /**
  * @Author: Mzx
@@ -36,22 +34,20 @@ public class InvokeCompletableFuture<T> implements Future<T> {
     }
 
     @Override
-    public T get() throws InterruptedException, ExecutionException {
+    public T get() {
         try {
             // 默认超时时间是三秒，或者设置为-1：永不超时
             return get(3000, TimeUnit.MILLISECONDS);
-        } catch (TimeoutException e) {
-            e.printStackTrace();
+        } catch (RpcException e) {
+            throw e;
         }
-        return null;
     }
 
     @Override
-    public T get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
-        // future get
-        RpcResponse rpcResponse =  responseFuture.get(timeout, unit);
+    public T get(long timeout, TimeUnit unit) {
+        RpcResponse rpcResponse = responseFuture.get(timeout, unit);
         if (rpcResponse.getException() != null) {
-            throw new TransactionException(rpcResponse.getException().getMessage());
+            throw new RpcException(RpcException.BIZ_EXCEPTION, rpcResponse.getException().getMessage());
         }
         return (T) rpcResponse.getReturnValue();
     }

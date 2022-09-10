@@ -57,7 +57,7 @@ public class NacosServiceDiscovery implements ServiceDiscovery {
         if (instanceList.size() == 0) {
             throw new RuntimeException("找不到对应服务");
         }
-        List<InstanceNode> instanceNodes = instanceList.stream().map(e -> new InstanceNode(e.getIp(), e.getPort())).collect(Collectors.toList());
+        List<InstanceNode> instanceNodes = instanceList.stream().map(e -> new InstanceNode(e.getIp(), e.getPort(), (int) e.getWeight(), e.getMetadata())).collect(Collectors.toList());
         return doSelect(instanceNodes, invoked, serviceName);
     }
 
