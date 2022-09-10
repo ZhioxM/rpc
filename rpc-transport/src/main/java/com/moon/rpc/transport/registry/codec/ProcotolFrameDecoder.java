@@ -1,4 +1,4 @@
-package com.moon.rpc.transport.codec;
+package com.moon.rpc.transport.registry.codec;
 
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 

@@ -1,9 +1,8 @@
 package com.moon.rpc.client.factory;
 
-import com.moon.rpc.client.transport.ResponseFuture;
 import com.moon.rpc.transport.dto.RpcResponse;
 
-import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -11,9 +10,10 @@ import java.util.concurrent.ConcurrentHashMap;
  * @desc 保存客户端异步响应结果的静态工厂
  */
 public class LocalRpcResponseFactory {
-    private static Map<Integer, ResponseFuture<RpcResponse>> req_res = new ConcurrentHashMap<>();
+    private static ConcurrentHashMap<Integer, CompletableFuture<RpcResponse>> req_res = new ConcurrentHashMap<>();
 
-    public static void add(Integer reqId, ResponseFuture<RpcResponse> future) {
+    public static void add(Integer reqId, CompletableFuture<RpcResponse> future) {
+        // 已存在就覆盖
         req_res.put(reqId, future);
     }
 
@@ -24,16 +24,20 @@ public class LocalRpcResponseFactory {
     /**
      * 设置响应结果
      *
-     * @param reqId
+     * @param sequenceId
      * @param rpcResponse
      */
-    public static void setResponse(Integer reqId, RpcResponse rpcResponse) {
+    public static void setResponse(Integer sequenceId, RpcResponse rpcResponse) {
         // 获取缓存中的 future（同时将其移除掉，因为他已经有响应结果了）
-        ResponseFuture<RpcResponse> future = req_res.remove(reqId);
+        CompletableFuture<RpcResponse> future = req_res.remove(sequenceId);
         if (future != null) {
             // 设置数据
-            future.setResponse(rpcResponse);
+            Exception e = rpcResponse.getException();
+            if(e == null) {
+                future.complete(rpcResponse);
+            } else {
+                future.completeExceptionally(e);
+            }
         }
     }
-
 }

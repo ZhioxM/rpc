@@ -1,7 +1,6 @@
 package com.moon.rpc.transport.dto;
 
 import com.moon.rpc.transport.constant.MessageType;
-import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -34,5 +33,9 @@ public class RpcResponse extends Message{
                 ", sequenceId=" + sequenceId +
                 ", messageType=" + messageType +
                 '}';
+    }
+
+    public boolean isException() {
+        return this.exception != null;
     }
 }

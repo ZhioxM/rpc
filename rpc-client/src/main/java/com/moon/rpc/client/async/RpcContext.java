@@ -1,29 +1,31 @@
 package com.moon.rpc.client.async;
 
-import com.moon.rpc.client.factory.LocalRpcResponseFactory;
-import com.moon.rpc.client.transport.ResponseFuture;
-import com.moon.rpc.transport.dto.RpcResponse;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * @Author: Mzx
  * @Date: 2022/8/30 0:06
  */
 public class RpcContext {
-    private static final ThreadLocal<InvokeCompletableFuture<?>> RPC_RESPONSE_THREAD_LOCAL = new ThreadLocal<>();
+    private static final ThreadLocal<RpcContext> RPC_RESPONSE_THREAD_LOCAL = new ThreadLocal<>();
 
-    public static void setCompletableFuture(Integer sequenceId, ResponseFuture<RpcResponse> responseFuture, InvokeCompletableFuture<?> future) {
+    private CompletableFuture<?> future;
+
+    public static RpcContext getContext() {
+        RpcContext rpcContext = RPC_RESPONSE_THREAD_LOCAL.get();
+        if(rpcContext == null) {
+            RPC_RESPONSE_THREAD_LOCAL.set(new RpcContext());
+        }
+        return RPC_RESPONSE_THREAD_LOCAL.get();
+    }
+
+    public void setFuture(CompletableFuture<?> future) {
         // System.out.println("当前线程：" + Thread.currentThread().getName()); // 验证使用ThreadLocal存储InvokeCompletableFuture<?>的正确性
-        LocalRpcResponseFactory.add(sequenceId, responseFuture);
-        RPC_RESPONSE_THREAD_LOCAL.set(future);
+        this.future = future;
     }
 
-    public static <T> InvokeCompletableFuture<T> getCompletableFuture() {
-        InvokeCompletableFuture<T> completableFuture = (InvokeCompletableFuture<T>) RPC_RESPONSE_THREAD_LOCAL.get();
+    public <T> CompletableFuture<T> getFuture() {
         RPC_RESPONSE_THREAD_LOCAL.remove(); // get之后手动remove，防止内存泄露
-        return completableFuture;
-    }
-
-    public static void removeCompletableFuture() {
-        RPC_RESPONSE_THREAD_LOCAL.remove();
+        return (CompletableFuture<T>) future;
     }
 }

@@ -75,11 +75,11 @@ public class NacosServiceDiscovery implements ServiceDiscovery {
         return instanceNode;
     }
 
-    private InstanceNode reselect(List<InstanceNode> instanceNodes, Set<InstanceNode> invoked, LoadBalance loadBalance, String serviceName) {
+    private InstanceNode reselect(List<InstanceNode> instanceNodes, Set<InstanceNode> selected, LoadBalance loadBalance, String serviceName) {
         // 1. Try picking some invokers not in `selected`.
         List<InstanceNode> reselectInstanceNodes = new ArrayList<>();
         for (InstanceNode instanceNode : instanceNodes) {
-            if (invoked.contains(instanceNode)) continue;
+            if (selected.contains(instanceNode)) continue;
             reselectInstanceNodes.add(instanceNode);
         }
 
@@ -89,8 +89,8 @@ public class NacosServiceDiscovery implements ServiceDiscovery {
         }
 
         // 3. 重选列表为空，则只能从已经选过的列表中继续选
-        if (invoked != null) {
-            for (InstanceNode instanceNode : invoked) {
+        if (selected != null) {
+            for (InstanceNode instanceNode : selected) {
                 reselectInstanceNodes.add(instanceNode);
             }
         }

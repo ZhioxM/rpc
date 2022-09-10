@@ -37,10 +37,14 @@ public class RpcRequest extends Message {
     private Object[] parameterValue;
 
     /**
-     * 超时时间，这个时间提供给服务端使用
-     * TODO 超时时间好像没有必要传给服务端，因为服务端也可以自己定义超时时间
+     * 超时时间
      */
     private long timeout;
+
+    /**
+     * 请求创建的时间，用于判断超时时间是否超时
+     */
+    private long createTime;
 
 
     public RpcRequest(int sequenceId, String interfaceName, String version, String methodName, Class<?>[] parameterTypes, Object[] parameterValue, long timeout) {
@@ -50,6 +54,7 @@ public class RpcRequest extends Message {
         this.methodName = methodName;
         this.parameterTypes = parameterTypes;
         this.parameterValue = parameterValue;
+        this.timeout = timeout;
     }
 
     @Override
@@ -64,5 +69,9 @@ public class RpcRequest extends Message {
                 ", sequenceId=" + sequenceId +
                 ", messageType=" + messageType +
                 '}';
+    }
+
+    public boolean isTimeOut() {
+        return System.currentTimeMillis() - createTime > timeout;
     }
 }

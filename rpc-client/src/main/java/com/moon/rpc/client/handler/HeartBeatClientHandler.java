@@ -2,8 +2,6 @@ package com.moon.rpc.client.handler;
 
 import com.moon.rpc.transport.constant.MessageType;
 import com.moon.rpc.transport.dto.HeartBeat;
-import com.moon.rpc.transport.protocol.Message;
-import com.moon.rpc.transport.protocol.MessageHeader;
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandler;
@@ -37,7 +35,6 @@ public class HeartBeatClientHandler extends ChannelDuplexHandler {
             //长时间没有写入数据  发送心跳包
             if (event.state() == IdleState.WRITER_IDLE) {
                 // 显示ip
-                log.debug("发送心跳包 {}", ctx.channel().remoteAddress());
                 HeartBeat heartBeat = new HeartBeat();
                 heartBeat.setSequenceId(0);
                 heartBeat.setMessageType(MessageType.HEARTBEAT.getType());

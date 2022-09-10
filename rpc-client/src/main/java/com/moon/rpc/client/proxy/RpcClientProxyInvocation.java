@@ -2,27 +2,21 @@ package com.moon.rpc.client.proxy;
 
 import com.alibaba.nacos.api.exception.NacosException;
 import com.moon.rpc.client.annotation.RpcReference;
-import com.moon.rpc.client.async.InvokeCompletableFuture;
 import com.moon.rpc.client.async.RpcContext;
 import com.moon.rpc.client.factory.LocalRpcResponseFactory;
-import com.moon.rpc.client.factory.RemoteChannelFactory;
 import com.moon.rpc.client.generic.RpcGenericService;
-import com.moon.rpc.client.transport.DefaultResponseFuture;
-import com.moon.rpc.client.transport.ResponseFuture;
 import com.moon.rpc.transport.dto.RpcRequest;
 import com.moon.rpc.transport.dto.RpcResponse;
 import com.moon.rpc.transport.exception.RpcException;
 import com.moon.rpc.transport.protocol.SequenceIdGenerator;
 import com.moon.rpc.transport.registry.InstanceNode;
 import com.moon.rpc.transport.registry.ServiceDiscovery;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelFuture;
 import lombok.extern.slf4j.Slf4j;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
-import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -60,7 +54,7 @@ public class RpcClientProxyInvocation implements InvocationHandler {
             parameterTypes = (Class<?>[]) args[2];
             parameters = (Object[]) args[3];
         }
-
+        // 3. 构造请求
         RpcRequest rpcRequest = new RpcRequest(
                 sequenceId,
                 clasName,
@@ -70,38 +64,79 @@ public class RpcClientProxyInvocation implements InvocationHandler {
                 parameters,
                 timeout
         );
-
-        // 计算最多的发送次数
-        int len = rpcReference.retries() + 1;
-        // 保存已经调用的InstanceNode
-        Set<InstanceNode> selected = new HashSet<>(len);
-        // 3. 异常重试
-        // TODO 异步的超时重试可能有问题
-        for (int i = 0; i < len; i++) {
-            // 选择一个Instance(服务器地址)
-            if (i != 0) {
-                // 发生了异常重试，超时时间缩小为一半，防止由于多次重试导致调用方等待时间延长
-                rpcRequest.setTimeout(rpcRequest.getTimeout() / 2);
-            }
-            InstanceNode instanceNode = select(rpcRequest.getInterfaceName(), selected);
-            selected.add(instanceNode);
-            Object result = null;
-            try {
-                // 4 调用服务
-                result = doInvoke(rpcRequest, instanceNode);
-                // 5 返回响应结果
-                return result;
-            } catch (RpcException e) {
-                // 业务异常不需要重试，直接抛出; 这次请求已经超时了，不需要重试，直接抛出
-                if (e.isBiz() || e.isTimeout()) {
-                    throw e;
-                }
-            } catch (Throwable e) {
-                throw new RpcException(e.getMessage(), e);
-            }
+        // 4. 判断接口返回值是什么，如果接口返回值是CompleteFuture类，则认为是异步的，那么接口就需要同时提供异步和同步两种方法
+        boolean isReturnFuture = CompletableFuture.class == method.getReturnType();
+        boolean isAsync = rpcReference.async();
+        boolean isOneWay = rpcReference.oneWay();
+        if (isOneWay) {
+            return doOneWay(rpcRequest);
+        } else {
+            return isReturnFuture ? doAsync(rpcRequest) : (isAsync ? doContextAsync(rpcRequest) : doSync(rpcRequest));
         }
-        // 重试还是失败了
-        throw new RpcException(RpcException.UNKNOWN_EXCEPTION, "Fail to call method " + method.getName() + ". Tried " + len + " times in the service");
+    }
+
+    /**
+     * 返回值与接口返回值一致
+     *
+     * @param rpcRequest
+     * @return
+     */
+    private Object doSync(RpcRequest rpcRequest) {
+        try {
+            CompletableFuture<RpcResponse> future = doInvoke(rpcRequest);
+            // 阻塞
+            RpcResponse rpcResponse = future.get(Integer.MAX_VALUE, TimeUnit.MILLISECONDS);
+            if (rpcResponse.isException()) {
+                throw rpcResponse.getException();
+            }
+            return rpcResponse.getReturnValue();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * 异步调用
+     * 方法返回值是Future类
+     *
+     * @param rpcRequest
+     * @return
+     */
+    private CompletableFuture<Object> doAsync(RpcRequest rpcRequest) {
+        CompletableFuture<Object> response = new CompletableFuture<>();
+        try {
+            CompletableFuture<RpcResponse> future = doInvoke(rpcRequest);
+            // 不阻塞
+            future.whenComplete((res, err) -> {
+                Throwable throwable = err == null ? res.getException() : err;
+                if (throwable != null) {
+                    response.completeExceptionally(err);
+                } else {
+                    response.complete(res.getReturnValue());
+                }
+            });
+        } catch (NacosException e) {
+            throw new RuntimeException(e);
+        }
+        return response;
+    }
+
+    /**
+     * 上下文异步调用
+     * 方法返回值是正常的返回值，但是是异步调用的，future类从上下文获取
+     *
+     * @return
+     */
+    private Object doContextAsync(RpcRequest rpcRequest) {
+        // 将异步future存入异步上下文
+        RpcContext.getContext().setFuture(doAsync(rpcRequest));
+        // 返回空值
+        return null;
+    }
+
+    private Object doOneWay(RpcRequest rpcRequest) {
+        doSync(rpcRequest);
+        return null;
     }
 
     // 服务发现
@@ -110,49 +145,29 @@ public class RpcClientProxyInvocation implements InvocationHandler {
         return serviceDiscovery.select(interfaceName, invoked);
     }
 
-    private Object doInvoke(RpcRequest rpcRequest, InstanceNode instanceNode) {
-        // 2. 准备一个ResponseFuture 用于接受异步结果
-        ResponseFuture<RpcResponse> future = new DefaultResponseFuture<>();
-        LocalRpcResponseFactory.add(rpcRequest.getSequenceId(), future);
-        // 3. 进行网络通信，发起RPC调用，将消息对象发送出去
-        // 3.1 获取客户端与该服务器的Channel
-        Channel channel = RemoteChannelFactory.get(instanceNode);
-        // 3.2 发送消息
-        ChannelFuture channelFuture = channel.writeAndFlush(rpcRequest);
-        // 3.3 等待消息发送完成
-        try {
-            channelFuture.sync();
-        } catch (InterruptedException e) {
-            throw new RpcException(RpcException.NETWORK_EXCEPTION, "Channel send message is interruted");
-        }
-        RpcResponse rpcResponse = null;
-        if (channelFuture.isSuccess()) {
-            log.info("客户端发送消息成功");
-            // 4. 判断调用类型是否为同步
-            if (rpcReference.async()) {
-                // 5. 是否需要返回值？
-                if (!rpcReference.oneWay()) {
-                    // 5.1 将future存储在ThreadLocal中
-                    // TODO 确认业务调用线程和这里发送线程是不是同一个线程 已经确认，这里还是用户线程
-                    // ResponseFuture存储RpcResponse
-                    // InvokeCompletableFuture存储RPC方法的返回值
-                    InvokeCompletableFuture<?> completableFuture = new InvokeCompletableFuture<>(future);
-                    RpcContext.setCompletableFuture(rpcRequest.getSequenceId(), future, completableFuture);
-                }
+    private CompletableFuture<RpcResponse> doInvoke(RpcRequest rpcRequest) throws NacosException {
+        CompletableFuture<RpcResponse> future = new CompletableFuture<>();
+        CompletableFuture<RpcResponse> result = new CompletableFuture<>();
+        retry(rpcRequest, future, result, 0);
+        return future;
+    }
+
+    private void retry(RpcRequest rpcRequest, CompletableFuture<RpcResponse> future, CompletableFuture<RpcResponse> result, int retries) {
+        // 将Future类存入缓存中
+        LocalRpcResponseFactory.add(rpcRequest.getSequenceId(), result);
+        // 异步处理结果
+        // TODO jdk8的Completable不支持异步超时等待机制，jdk9后才实现。自己封装一个，参考https://blog.csdn.net/weixin_40118044/article/details/121687726
+        result.whenComplete((res, err) -> {
+            Throwable e = err == null ? res.getException() : err;
+            if (err == null) {
+                future.complete(res);
+            } else if (rpcRequest.isTimeOut()) {
+                future.completeExceptionally(new RpcException(RpcException.TIMEOUT_EXCEPTION, "调用超时了"));
+            } else if (retries > rpcReference.retries()) {
+                future.completeExceptionally(new RpcException(RpcException.UNKNOWN_EXCEPTION, "重传了" + retries + "次，还是失败了，失败原因：" + err.getMessage()));
             } else {
-                // 6. 阻塞等待RPC结果
-                rpcResponse = future.get(rpcReference.timeout(), TimeUnit.MILLISECONDS);
+                retry(rpcRequest, future, result, retries + 1);
             }
-        } else {
-            log.error("客户端消息发送失败");
-            throw new RpcException(RpcException.NETWORK_EXCEPTION, "Channel send message is failed");
-        }
-        // 响应结果中有异常信息，则抛出业务异常
-        if (rpcResponse == null || rpcResponse.getException() != null) {
-            // rpcResponse肯定是非空的，因为如果为空，在get的时候就抛出运行时异常了
-            // TODO 服务端返回的异常需要特殊处理，如果是判断是业务异常，还是因为压力太大导致的异常
-            throw new RpcException(RpcException.BIZ_EXCEPTION, rpcResponse == null ? "调用异常" : rpcResponse.getException().getMessage());
-        }
-        return rpcResponse.getReturnValue();
+        });
     }
 }
